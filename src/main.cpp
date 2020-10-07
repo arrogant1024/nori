@@ -159,6 +159,7 @@ int main(int argc, char **argv) {
     }
 
     std::string sceneName = "";
+<<<<<<< HEAD
 
     for (int i = 1; i < argc; ++i) {
         std::string token(argv[i]);
@@ -216,6 +217,65 @@ int main(int argc, char **argv) {
             /* When the XML root object is a scene, start rendering it .. */
             if (root->getClassType() == NoriObject::EScene)
                 render(static_cast<Scene *>(root.get()), argv[1]);
+=======
+
+    for (int i = 1; i < argc; ++i) {
+        std::string token(argv[i]);
+        if (token == "-t" || token == "--threads") {
+            if (i+1 >= argc) {
+                cerr << "\"--threads\" argument expects a positive integer following it." << endl;
+                return -1;
+            }
+            threadCount = atoi(argv[i+1]);
+            i++;
+            if (threadCount <= 0) {
+                cerr << "\"--threads\" argument expects a positive integer following it." << endl;
+                return -1;
+            }
+
+            continue;
+        }
+
+        filesystem::path path(argv[i]);
+
+        try {
+            if (path.extension() == "xml") {
+                sceneName = argv[i];
+
+                /* Add the parent directory of the scene file to the
+                   file resolver. That way, the XML file can reference
+                   resources (OBJ files, textures) using relative paths */
+                getFileResolver()->prepend(path.parent_path());
+            } else if (path.extension() == "exr") {
+                /* Alternatively, provide a basic OpenEXR image viewer */
+                Bitmap bitmap(argv[i]);
+                ImageBlock block(Vector2i((int) bitmap.cols(), (int) bitmap.rows()), nullptr);
+                block.fromBitmap(bitmap);
+                nanogui::init();
+                NoriScreen *screen = new NoriScreen(block);
+                nanogui::mainloop();
+                delete screen;
+                nanogui::shutdown();
+            } else {
+                cerr << "Fatal error: unknown file \"" << argv[i]
+                     << "\", expected an extension of type .xml or .exr" << endl;
+            }
+        } catch (const std::exception &e) {
+            cerr << "Fatal error: " << e.what() << endl;
+            return -1;
+        }
+    }
+
+    if (threadCount < 0) {
+        threadCount = tbb::task_scheduler_init::automatic;
+    }
+
+    if (sceneName != "") {
+            std::unique_ptr<NoriObject> root(loadFromXML(sceneName));
+            /* When the XML root object is a scene, start rendering it .. */
+            if (root->getClassType() == NoriObject::EScene)
+                render(static_cast<Scene *>(root.get()), sceneName);
+>>>>>>> 34630133e786bef107c3947fb6c58b7be29ff122
     }
 
     return 0;
